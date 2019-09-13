@@ -1,6 +1,5 @@
 import asyncio
 import os
-import time
 from sys import version_info
 from urllib.parse import urlparse
 
@@ -21,8 +20,8 @@ class NaverDownloader:
         page = True
         counter = 1
         item_list_url = 'https://entertain.naver.com/photo/issueItemList.json'
-        timeout = aiohttp.ClientTimeout(total=30)
-        headers = {'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0"}
+        timeout = aiohttp.ClientTimeout(total=60)
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0'}
         async with aiohttp.ClientSession(timeout=timeout, headers=headers) as self.session:
             while page:
                 async with self.session.get(item_list_url, params={'page': counter, 'cid': cid}) as response:
@@ -55,10 +54,7 @@ def main():
     tags = [str(i) for i in input('Enter space separated tags: ').split()]
     if not tags:
         tags = ['']
-    x = time.time()
     NaverDownloader(url, tags)
-    print('Time to complete script: ', time.time() - x)
-    input('Press Enter to exit . . . ')
 
 
 if __name__ == '__main__':
