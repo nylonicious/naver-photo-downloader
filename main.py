@@ -14,14 +14,14 @@ class NaverDownloader:
     async def queue_downloads(self, tags, url):
         tasks = []
         cid = urlparse(url).path.split('/')[3]
-        desiredpath = os.getcwd() + '\\' + cid + '\\'
+        desiredpath = os.path.join(os.getcwd(), cid)
         if not os.path.exists(desiredpath):
             os.makedirs(desiredpath)
         page = True
         counter = 1
         item_list_url = 'https://entertain.naver.com/photo/issueItemList.json'
         timeout = aiohttp.ClientTimeout(total=60)
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0'}
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:69.0) Gecko/20100101 Firefox/69.0'}
         async with aiohttp.ClientSession(timeout=timeout, headers=headers) as self.session:
             while page:
                 async with self.session.get(item_list_url, params={'page': counter, 'cid': cid}) as response:
@@ -33,7 +33,7 @@ class NaverDownloader:
                         title = i['title']
                         picture_url = url.split('?')[0]
                         picture_name = urlparse(picture_url).path.split('/')[-1]
-                        picture_path = desiredpath + picture_name
+                        picture_path = os.path.join(desiredpath, picture_name)
                         for item in tags:
                             if not os.path.isfile(picture_path) and item in title:
                                 tasks.append(asyncio.create_task(self.download(picture_url, picture_path)))
