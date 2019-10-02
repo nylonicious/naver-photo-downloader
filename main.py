@@ -1,5 +1,5 @@
 import asyncio
-import os
+from pathlib import Path
 from sys import version_info
 from urllib.parse import urlparse
 
@@ -14,9 +14,9 @@ class NaverDownloader:
     async def queue_downloads(self, tags, url):
         tasks = []
         cid = urlparse(url).path.split('/')[3]
-        desiredpath = os.path.join(os.getcwd(), cid)
-        if not os.path.exists(desiredpath):
-            os.makedirs(desiredpath)
+        desiredpath = Path.cwd() / cid
+        if not desiredpath.exists():
+            desiredpath.mkdir(parents=True)
         page = True
         counter = 1
         item_list_url = 'https://entertain.naver.com/photo/issueItemList.json'
@@ -33,9 +33,9 @@ class NaverDownloader:
                         title = i['title']
                         picture_url = url.split('?')[0]
                         picture_name = urlparse(picture_url).path.split('/')[-1]
-                        picture_path = os.path.join(desiredpath, picture_name)
+                        picture_path = desiredpath / picture_name
                         for item in tags:
-                            if not os.path.isfile(picture_path) and item in title:
+                            if not picture_path.is_file() and item in title:
                                 tasks.append(asyncio.create_task(self.download(picture_url, picture_path)))
             await asyncio.gather(*tasks)
 
