@@ -6,47 +6,40 @@ from urllib.parse import urlparse
 import aiohttp
 
 
-class NaverDownloader:
-    def __init__(self, url, tags):
-        self.session = None
-        asyncio.run(self.queue_downloads(tags, url))
+async def queue_downloads(url, tags):
+    tasks = []
+    cid = urlparse(url).path.split('/')[3]
+    desired_path = Path.cwd() / cid
+    desired_path.mkdir(parents=False, exist_ok=True)
+    page = True
+    counter = 1
+    item_list_url = 'https://entertain.naver.com/photo/issueItemList.json'
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:70.0) Gecko/20100101 Firefox/70.0'}
+    async with aiohttp.ClientSession(headers=headers) as session:
+        while page:
+            async with session.get(item_list_url, params={'page': counter, 'cid': cid}) as response:
+                data = await response.json()
+                page = data['results'][0]['thumbnails']
+                counter += 1
+                for item in page:
+                    url = item['thumbUrl']
+                    title = item['title']
+                    picture_url = url.split('?')[0]
+                    picture_name = urlparse(picture_url).path.split('/')[-1]
+                    picture_path = desired_path / picture_name
+                    for item in tags:
+                        if not picture_path.is_file() and item in title:
+                            tasks.append(asyncio.create_task(download(session, picture_url, picture_path)))
+                await asyncio.gather(*tasks)
 
-    async def queue_downloads(self, tags, url):
-        tasks = []
-        cid = urlparse(url).path.split('/')[3]
-        desiredpath = Path.cwd() / cid
-        if not desiredpath.exists():
-            desiredpath.mkdir(parents=True)
-        page = True
-        counter = 1
-        item_list_url = 'https://entertain.naver.com/photo/issueItemList.json'
-        timeout = aiohttp.ClientTimeout(total=60)
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:69.0) Gecko/20100101 Firefox/69.0'}
-        async with aiohttp.ClientSession(timeout=timeout, headers=headers) as self.session:
-            while page:
-                async with self.session.get(item_list_url, params={'page': counter, 'cid': cid}) as response:
-                    data = await response.json()
-                    page = data['results'][0]['thumbnails']
-                    counter += 1
-                    for i in page:
-                        url = i['thumbUrl']
-                        title = i['title']
-                        picture_url = url.split('?')[0]
-                        picture_name = urlparse(picture_url).path.split('/')[-1]
-                        picture_path = desiredpath / picture_name
-                        for item in tags:
-                            if not picture_path.is_file() and item in title:
-                                tasks.append(asyncio.create_task(self.download(picture_url, picture_path)))
-            await asyncio.gather(*tasks)
 
-    async def download(self, picture_url, picture_path):
-        async with self.session.get(picture_url) as r:
-            if r.status == 200:
-                with open(picture_path, 'wb') as f:
-                    f.write(await r.read())
-                    print(f'Downloading {picture_url}')
-            else:
-                print(f'Error {r.status} while getting request for {picture_url}')
+async def download(session, picture_url, picture_path):
+    async with session.get(picture_url) as r:
+        if r.status == 200:
+            picture_path.write_bytes(await r.read())
+            print(f'Downloaded {picture_url}')
+        else:
+            print(f'Error {r.status} while getting request for {picture_url}')
 
 
 def main():
@@ -54,7 +47,7 @@ def main():
     tags = [str(i) for i in input('Enter space separated tags: ').split()]
     if not tags:
         tags = ['']
-    NaverDownloader(url, tags)
+    asyncio.run(queue_downloads(url, tags))
 
 
 if __name__ == '__main__':
